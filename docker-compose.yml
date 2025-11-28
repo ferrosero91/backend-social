@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: recruiting_agent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=recruiting_agent.settings.base
+      - DB_HOST=postgres
+      - DB_NAME=recruiting_agent
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: celery -A recruiting_agent worker --loglevel=info
+    volumes:
+      - .:/app
+    environment:
+      - DJANGO_SETTINGS_MODULE=recruiting_agent.settings.base
+      - DB_HOST=postgres
+      - DB_NAME=recruiting_agent
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
