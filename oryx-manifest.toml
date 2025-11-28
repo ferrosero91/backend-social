@@ -1,0 +1,8 @@
+# Oryx manifest for Azure App Service
+# Force FastAPI instead of Django
+
+[build]
+framework = "Python"
+
+[run]
+command = "gunicorn --bind=0.0.0.0:8000 --timeout 600 --workers 2 api.main:app -k uvicorn.workers.UvicornWorker"
