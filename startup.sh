@@ -6,9 +6,9 @@ echo "Starting Recruiting Agent API with FastAPI..."
 # Change to the correct directory
 cd /home/site/wwwroot
 
-# Run migrations
+# Run migrations using renamed manage script
 echo "Running Django migrations..."
-python manage.py migrate --noinput || echo "Migrations failed or not needed"
+python manage_django.py migrate --noinput || echo "Migrations failed or not needed"
 
 # Start Gunicorn with Uvicorn workers for FastAPI
 echo "Starting Gunicorn with Uvicorn workers..."
