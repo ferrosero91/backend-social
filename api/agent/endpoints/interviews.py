@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from typing import List
 from api.schemas import (
     InterviewCreate, InterviewResponse, InterviewDetailResponse,
-    QuestionResponse, AnswerCreate, AnswerResponse
+    QuestionResponse, AnswerCreate, AnswerResponse,
+    QuestionsUploadRequest, QuestionWithAnswerResponse
 )
 from api.dependencies import (
     get_interview_service, get_current_user, get_current_candidate,
@@ -68,7 +69,7 @@ def get_interview(
     user = Depends(get_current_user),
     interview_service: InterviewService = Depends(get_interview_service)
 ):
-    """Get interview details with questions."""
+    """Get interview details with questions and answers."""
     interview = interview_service.get_by_id(interview_id)
     
     if not interview:
@@ -90,6 +91,23 @@ def get_interview(
         )
     
     questions = list(interview.questions.all())
+    
+    # For companies, include answers with questions
+    if user.role == 'company':
+        questions_with_answers = []
+        for q in questions:
+            q_dict = QuestionResponse.model_validate(q).model_dump()
+            try:
+                answer = q.answer
+                q_dict['answer'] = AnswerResponse.model_validate(answer).model_dump()
+            except:
+                q_dict['answer'] = None
+            questions_with_answers.append(q_dict)
+        
+        return InterviewDetailResponse(
+            **InterviewResponse.model_validate(interview).model_dump(),
+            questions=questions_with_answers
+        )
     
     return InterviewDetailResponse(
         **InterviewResponse.model_validate(interview).model_dump(),
@@ -142,6 +160,56 @@ def submit_answer(
         )
     
     return AnswerResponse.model_validate(answer)
+
+
+@router.post("/{interview_id}/questions", response_model=List[QuestionResponse], status_code=status.HTTP_201_CREATED)
+def upload_questions(
+    interview_id: int,
+    data: QuestionsUploadRequest,
+    candidate = Depends(get_current_candidate),
+    interview_service: InterviewService = Depends(get_interview_service)
+):
+    """Upload interview questions from mobile app (Candidate only)."""
+    interview = interview_service.get_by_id(interview_id)
+    
+    if not interview:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Interview not found"
+        )
+    
+    if interview.candidate.user_id != candidate.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to upload questions for this interview"
+        )
+    
+    # Validate question format
+    if not data.questions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Questions array cannot be empty"
+        )
+    
+    try:
+        questions = interview_service.upload_questions(
+            interview_id=interview_id,
+            questions_data=[q.model_dump() for q in data.questions]
+        )
+        
+        if not questions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to upload questions"
+            )
+        
+        return [QuestionResponse.model_validate(q) for q in questions]
+    
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e)
+        )
 
 
 @router.post("/{interview_id}/complete", response_model=InterviewResponse)

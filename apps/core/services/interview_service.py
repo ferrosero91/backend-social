@@ -153,16 +153,33 @@ class InterviewService(BaseService):
         interview.status = 'completed'
         interview.completed_at = datetime.now()
         
-        # Calculate final score
+        # Calculate final score from submitted answers
         answers = Answer.objects.filter(question__interview=interview)
         if answers.exists():
-            avg_answer_score = sum(a.score or 0 for a in answers) / answers.count()
-            # Final score: 40% skill match + 60% interview performance
-            final_score = (interview.skill_match_score * 0.4) + (avg_answer_score * 10 * 0.6)
-            interview.final_score = round(final_score, 2)
+            # Calculate average score from answered questions only
+            total_score = 0
+            scored_answers = 0
             
-            # Generate recommendation
-            interview.agent_recommendation = cls._generate_recommendation(interview, final_score)
+            for answer in answers:
+                if answer.score is not None:
+                    total_score += answer.score
+                    scored_answers += 1
+            
+            if scored_answers > 0:
+                # Average score (0-10 scale) converted to 0-100 scale
+                avg_answer_score = (total_score / scored_answers) * 10
+                # Final score: 40% skill match + 60% interview performance
+                final_score = (interview.skill_match_score * 0.4) + (avg_answer_score * 0.6)
+                interview.final_score = round(final_score, 2)
+                
+                # Generate recommendation
+                interview.agent_recommendation = cls._generate_recommendation(interview, final_score)
+            else:
+                interview.final_score = 0.0
+                interview.agent_recommendation = "Not Recommended: No answers were evaluated."
+        else:
+            interview.final_score = 0.0
+            interview.agent_recommendation = "Not Recommended: No answers submitted."
         
         interview.save()
         return interview
@@ -188,3 +205,29 @@ class InterviewService(BaseService):
     def get_interviews_by_candidate(cls, candidate_id: int):
         """Get all interviews for a specific candidate."""
         return cls.model.objects.filter(candidate_id=candidate_id)
+    
+    @classmethod
+    def upload_questions(cls, interview_id: int, questions_data: List[Dict]) -> Optional[List[Question]]:
+        """Upload interview questions from mobile app."""
+        interview = cls.get_by_id(interview_id)
+        if not interview:
+            return None
+        
+        # Check if questions already exist for this interview
+        existing_questions = interview.questions.count()
+        if existing_questions > 0:
+            raise ValueError("Questions already uploaded for this interview")
+        
+        # Create questions in a transaction
+        created_questions = []
+        for q_data in questions_data:
+            question = Question.objects.create(
+                interview=interview,
+                question_text=q_data['question_text'],
+                difficulty=q_data['difficulty'].lower(),
+                skill_evaluated=q_data['skill_evaluated'],
+                order=q_data['order']
+            )
+            created_questions.append(question)
+        
+        return created_questions

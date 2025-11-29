@@ -4,7 +4,13 @@ from .candidate import CandidateCreate, CandidateUpdate, CandidateResponse
 from .job import JobCreate, JobUpdate, JobResponse
 from .interview import (
     InterviewCreate, InterviewResponse, InterviewDetailResponse,
-    QuestionResponse, AnswerCreate, AnswerResponse
+    QuestionResponse, AnswerCreate, AnswerResponse,
+    QuestionUpload, QuestionsUploadRequest, QuestionWithAnswerResponse
+)
+from .ai import (
+    QuestionGenerationRequest, QuestionGenerationResponse,
+    InterviewQuestionResponse, AnswerEvaluationRequest,
+    AnswerEvaluationResponse, AnswerEvaluation, QuestionAnswerPair
 )
 
 __all__ = [
@@ -14,4 +20,8 @@ __all__ = [
     'JobCreate', 'JobUpdate', 'JobResponse',
     'InterviewCreate', 'InterviewResponse', 'InterviewDetailResponse',
     'QuestionResponse', 'AnswerCreate', 'AnswerResponse',
+    'QuestionUpload', 'QuestionsUploadRequest', 'QuestionWithAnswerResponse',
+    'QuestionGenerationRequest', 'QuestionGenerationResponse',
+    'InterviewQuestionResponse', 'AnswerEvaluationRequest',
+    'AnswerEvaluationResponse', 'AnswerEvaluation', 'QuestionAnswerPair',
 ]

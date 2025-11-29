@@ -60,3 +60,18 @@ class InterviewResponse(BaseModel):
 
 class InterviewDetailResponse(InterviewResponse):
     questions: List[QuestionResponse] = []
+
+
+class QuestionUpload(BaseModel):
+    question_text: str
+    difficulty: str
+    skill_evaluated: str
+    order: int
+
+
+class QuestionsUploadRequest(BaseModel):
+    questions: List[QuestionUpload]
+
+
+class QuestionWithAnswerResponse(QuestionResponse):
+    answer: Optional[AnswerResponse] = None
