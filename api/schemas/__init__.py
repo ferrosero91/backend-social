@@ -7,11 +7,6 @@ from .interview import (
     QuestionResponse, AnswerCreate, AnswerResponse,
     QuestionUpload, QuestionsUploadRequest, QuestionWithAnswerResponse
 )
-from .ai import (
-    QuestionGenerationRequest, QuestionGenerationResponse,
-    InterviewQuestionResponse, AnswerEvaluationRequest,
-    AnswerEvaluationResponse, AnswerEvaluation, QuestionAnswerPair
-)
 
 __all__ = [
     'UserCreate', 'UserResponse', 'TokenResponse', 'LoginRequest',
@@ -21,7 +16,4 @@ __all__ = [
     'InterviewCreate', 'InterviewResponse', 'InterviewDetailResponse',
     'QuestionResponse', 'AnswerCreate', 'AnswerResponse',
     'QuestionUpload', 'QuestionsUploadRequest', 'QuestionWithAnswerResponse',
-    'QuestionGenerationRequest', 'QuestionGenerationResponse',
-    'InterviewQuestionResponse', 'AnswerEvaluationRequest',
-    'AnswerEvaluationResponse', 'AnswerEvaluation', 'QuestionAnswerPair',
 ]
