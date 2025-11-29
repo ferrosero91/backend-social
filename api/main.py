@@ -9,6 +9,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'recruiting_agent.settings.base')
 django.setup()
 
+# Run migrations on startup (only in production)
+if os.getenv('WEBSITE_INSTANCE_ID'):  # Azure App Service environment variable
+    from django.core.management import call_command
+    try:
+        print("Running Django migrations...")
+        call_command('migrate', '--noinput')
+        print("Migrations completed successfully")
+    except Exception as e:
+        print(f"Migration error: {e}")
+
 from api.agent.api import api_router
 
 app = FastAPI(
