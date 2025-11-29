@@ -33,6 +33,7 @@ def register(user_data: UserCreate, user_service: UserService = Depends(get_user
     """Register a new user and return JWT tokens."""
     from rest_framework_simplejwt.tokens import RefreshToken
     from api.schemas import UserCreate
+    from api.dependencies import get_candidate_service, get_company_service
     
     # Check if user already exists
     if user_service.get_by_username(user_data.username):
@@ -47,6 +48,13 @@ def register(user_data: UserCreate, user_service: UserService = Depends(get_user
             detail="Email already exists"
         )
     
+    # Validate role
+    if user_data.role not in ['candidate', 'company']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Role must be 'candidate' or 'company'"
+        )
+    
     # Create new user
     user = user_service.create_user(
         username=user_data.username,
@@ -55,6 +63,24 @@ def register(user_data: UserCreate, user_service: UserService = Depends(get_user
         role=user_data.role,
         phone=user_data.phone
     )
+    
+    # Create corresponding profile based on role
+    if user_data.role == 'candidate':
+        candidate_service = get_candidate_service()
+        candidate_service.create(
+            user_id=user.id,
+            name=user_data.username,
+            email=user_data.email,
+            phone=user_data.phone
+        )
+    elif user_data.role == 'company':
+        company_service = get_company_service()
+        company_service.create(
+            user_id=user.id,
+            name=user_data.username,
+            email=user_data.email,
+            phone=user_data.phone
+        )
     
     # Generate JWT tokens
     refresh = RefreshToken.for_user(user)
