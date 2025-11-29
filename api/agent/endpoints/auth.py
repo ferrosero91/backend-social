@@ -66,20 +66,22 @@ def register(user_data: UserCreate, user_service: UserService = Depends(get_user
     
     # Create corresponding profile based on role
     if user_data.role == 'candidate':
-        candidate_service = get_candidate_service()
-        candidate_service.create(
-            user_id=user.id,
-            name=user_data.username,
-            email=user_data.email,
-            phone=user_data.phone
+        from apps.core.models import Candidate
+        Candidate.objects.create(
+            user=user,
+            full_name=user_data.username,
+            skills=[],
+            experience_years=0,
+            education='',
         )
     elif user_data.role == 'company':
-        company_service = get_company_service()
-        company_service.create(
-            user_id=user.id,
-            name=user_data.username,
-            email=user_data.email,
-            phone=user_data.phone
+        from apps.core.models import Company
+        Company.objects.create(
+            user=user,
+            company_name=user_data.username,
+            industry='',
+            size='',
+            description='',
         )
     
     # Generate JWT tokens

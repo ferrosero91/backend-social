@@ -3,7 +3,7 @@ from typing import List
 from api.schemas import (
     UserCreate, UserResponse, 
     CompanyCreate, CompanyResponse,
-    CandidateCreate, CandidateResponse
+    CandidateCreate, CandidateUpdate, CandidateResponse
 )
 from api.dependencies import (
     get_user_service, get_company_service, get_candidate_service,
@@ -117,4 +117,78 @@ def delete_current_user(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
+        )
+
+
+@router.get("/me/profile", response_model=CandidateResponse)
+def get_candidate_profile(
+    user = Depends(get_current_user),
+    candidate_service: CandidateService = Depends(get_candidate_service)
+):
+    """Get candidate profile for current user."""
+    if user.role != 'candidate':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only candidates can access this endpoint"
+        )
+    
+    candidate = candidate_service.get_by_user_id(user.id)
+    
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate profile not found"
+        )
+    
+    return CandidateResponse.model_validate(candidate)
+
+
+@router.put("/me/profile", response_model=CandidateResponse)
+def update_candidate_profile(
+    data: CandidateUpdate,
+    user = Depends(get_current_user),
+    candidate_service: CandidateService = Depends(get_candidate_service)
+):
+    """Update candidate profile for current user."""
+    if user.role != 'candidate':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only candidates can access this endpoint"
+        )
+    
+    candidate = candidate_service.get_by_user_id(user.id)
+    
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate profile not found"
+        )
+    
+    try:
+        # Update only provided fields
+        update_data = {}
+        if data.full_name is not None:
+            update_data['full_name'] = data.full_name
+        if data.skills is not None:
+            update_data['skills'] = data.skills
+        if data.experience_years is not None:
+            update_data['experience_years'] = data.experience_years
+        if data.education is not None:
+            update_data['education'] = data.education
+        if data.linkedin_url is not None:
+            update_data['linkedin_url'] = str(data.linkedin_url)
+        
+        updated_candidate = candidate_service.update(candidate.id, **update_data)
+        
+        if not updated_candidate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Failed to update candidate profile"
+            )
+        
+        return CandidateResponse.model_validate(updated_candidate)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to update profile: {str(e)}"
         )
